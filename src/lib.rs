@@ -13,6 +13,8 @@
 
 use std::collections::HashMap;
 use std::ops::Index;
+use std::fmt::Debug;
+use std::fmt::Formatter;
 
 type InternalIndex = usize;
 type ExternalIndex = usize;
@@ -147,6 +149,13 @@ impl<ValueType> PartialEq for AssociativePositionalList<ValueType>
                 return false;
             }
         }
+    }
+}
+
+impl<ValueType> Debug for AssociativePositionalList<ValueType>
+        where ValueType: std::hash::Hash + Eq + Clone + Debug {
+    fn fmt(self: &Self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        return f.debug_list().entries(self.iter()).finish();
     }
 }
 
@@ -984,7 +993,7 @@ fn test_randomly() {
     // test without items
     assert!(test_me.is_empty());
     assert!(test_me == test_me);
-    //assert_eq!(test_me, test_me);
+    assert_eq!(test_me, test_me);
 
     // initially fill the list with some items in random positions
     for k in 1 .. test_size + 1 {
@@ -1016,7 +1025,7 @@ fn test_randomly() {
     check_all(&test_me, &ref_list);
     // test equality when some items are present
     assert!(test_me == test_me);
-    //assert_eq!(test_me, test_me);
+    assert_eq!(test_me, test_me);
     // remove half of the items (chosen from random positions)
     for _ in 1 .. (test_size / 2) {
         let i = rng.gen_range(0 .. ref_list.len() as TestValueType);
@@ -1055,7 +1064,7 @@ fn test_randomly() {
     // test without items again
     assert!(test_me.is_empty());
     assert!(test_me == test_me);
-    //assert_eq!(test_me, test_me);
+    assert_eq!(test_me, test_me);
 
     // check that the list works the same after clearing:
     // iteration 0: an empty but used state
@@ -1112,9 +1121,11 @@ fn test_interfaces() {
     assert_eq!(p.len(), 2);
     assert_eq!(p[0], "Hello");
     assert_eq!(p[1], "World");
+    assert_eq!(&format!("{:?}", p), "[\"Hello\", \"World\"]");  // test Debug formatter
+    assert_eq!(p, p);
     assert!(!p.is_empty());
     for n in p.iter() {
-      assert!(n == "Hello" || n == "World");
+        assert!(n == "Hello" || n == "World");
     }
     p.remove(0);
     assert_eq!(p[0], "World");
@@ -1122,4 +1133,14 @@ fn test_interfaces() {
     assert_eq!(p.find(&"World".to_string()), Some(0));
     p.remove(0);
     assert!(p.is_empty());
+    assert_eq!(&format!("{:?}", p), "[]");
+    let mut p2: AssociativePositionalList<i8> = AssociativePositionalList::new();
+    for i in 0 .. 5 {
+        p2.insert(0, i);
+    }
+    assert_eq!(&format!("{:?}", p2), "[4, 3, 2, 1, 0]");
+    assert_eq!(p2.find(&0), Some(4));
+    p2.remove(1);
+    assert_eq!(p2.find(&0), Some(3));
+    assert_eq!(&format!("{:?}", p2), "[4, 2, 1, 0]");
 }

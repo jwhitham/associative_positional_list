@@ -1,6 +1,6 @@
 [package]
 name = "associative_positional_list"
-version = "0.1.0"
+version = "0.1.1"
 edition = "2021"
 description = "AssociativePositionalList is a list-like container in which each value is associated with an index, but unlike other list containers, the index for a value can be determined efficiently."
 homepage = "https://www.jwhitham.org/"
