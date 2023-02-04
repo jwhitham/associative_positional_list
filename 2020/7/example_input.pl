@@ -1,9 +1,0 @@
-data(light_red_bag,[record(1,bright_white_bag),record(2,muted_yellow_bag)]).
-data(dark_orange_bag,[record(3,bright_white_bag),record(4,muted_yellow_bag)]).
-data(bright_white_bag,[record(1,shiny_gold_bag)]).
-data(muted_yellow_bag,[record(2,shiny_gold_bag),record(9,faded_blue_bag)]).
-data(shiny_gold_bag,[record(1,dark_olive_bag),record(2,vibrant_plum_bag)]).
-data(dark_olive_bag,[record(3,faded_blue_bag),record(4,dotted_black_bag)]).
-data(vibrant_plum_bag,[record(5,faded_blue_bag),record(6,dotted_black_bag)]).
-data(faded_blue_bag,[no_other_bags]).
-data(dotted_black_bag,[no_other_bags]).

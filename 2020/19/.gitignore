@@ -1,6 +1,0 @@
-*.exe
-lex.l
-lex.yy.c
-yacc.tab.c
-yacc.tab.h
-yacc.y
