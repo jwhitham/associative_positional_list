@@ -1,0 +1,5 @@
+*.rs text eol=lf
+test* text eol=lf
+.gitattributes text eol=lf
+README.md text eol=lf
+Cargo.toml text eol=lf

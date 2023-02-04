@@ -54,16 +54,9 @@ const HEAD_INDEX: InternalIndex = 0;
 /// p.insert(0, "Hello".to_string());
 /// p.insert(1, "World".to_string());
 /// assert_eq!(p.find(&"World".to_string()), Some(1));
-/// assert_eq!(p.len(), 2);
 /// assert_eq!(p[0], "Hello");
-/// assert_eq!(p[1], "World");
-/// assert!(!p.is_empty());
-/// for n in p.iter() {
-///   assert!(n == "Hello" || n == "World");
-/// }
 /// p.remove(0);
 /// assert_eq!(p[0], "World");
-/// assert_eq!(p.find(&"Hello".to_string()), None);
 /// assert_eq!(p.find(&"World".to_string()), Some(0));
 /// p.remove(0);
 /// assert!(p.is_empty());
@@ -83,9 +76,6 @@ const HEAD_INDEX: InternalIndex = 0;
 /// time complexity (i.e. O(log N) operations are required).
 ///
 /// `len`, `is_empty` and `clear` have constant time.
-///
-/// When using an iterator, each step is O(log N), with an overall time complexity
-/// of O(N log N) for the whole list.
 ///
 /// # Notes
 ///
@@ -178,6 +168,7 @@ struct IterStackItem {
     direction: Direction,
 }
 
+/// This is an iterator over elements in an AssociativePositionalList
 pub struct Iter<'a, ValueType: 'a> where ValueType: std::hash::Hash + Eq + Clone {
     stack: Vec<IterStackItem>,
     parent: &'a AssociativePositionalList<ValueType>,
@@ -816,7 +807,7 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
 
 
 #[test]
-fn test() {
+fn test_randomly() {
     use rand::rngs::StdRng;
     use rand::SeedableRng;
     use rand::Rng;
@@ -1110,4 +1101,25 @@ fn test() {
         another.remove(2);
         assert!(test_me == another);    // the other list has the same values again
     }
+}
+
+#[test]
+fn test_interfaces() {
+    let mut p: AssociativePositionalList<String> = AssociativePositionalList::new();
+    p.insert(0, "Hello".to_string());
+    p.insert(1, "World".to_string());
+    assert_eq!(p.find(&"World".to_string()), Some(1));
+    assert_eq!(p.len(), 2);
+    assert_eq!(p[0], "Hello");
+    assert_eq!(p[1], "World");
+    assert!(!p.is_empty());
+    for n in p.iter() {
+      assert!(n == "Hello" || n == "World");
+    }
+    p.remove(0);
+    assert_eq!(p[0], "World");
+    assert_eq!(p.find(&"Hello".to_string()), None);
+    assert_eq!(p.find(&"World".to_string()), Some(0));
+    p.remove(0);
+    assert!(p.is_empty());
 }

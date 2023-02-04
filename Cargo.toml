@@ -6,6 +6,8 @@ description = "AssociativePositionalList is a list-like container in which each 
 homepage = "https://www.jwhitham.org/"
 license = "MIT OR Apache-2.0"
 authors = ["Jack Whitham"]
+readme = "README.md"
+exclude = ["/tests", "/.gitignore", "/.gitattributes"]
 
 [dev-dependencies]
 rand = { version = "0.8.0" }
