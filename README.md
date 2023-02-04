@@ -10,6 +10,7 @@ unlike other list containers such as `Vec`, the association
 between index and value is reversible, and the index
 for a value may be determined using `find`.
 
+* [crates.io page](https://crates.io/crates/associative_positional_list)
 * [Documentation at docs.rs](https://docs.rs/associative_positional_list)
 * [Source code on Github](https://github.com/jwhitham/associative_positional_list)
 
@@ -22,4 +23,8 @@ This crate was developed by a relative newcomer to Rust as part
 of a learning exercise. It may not be very efficient. Some of
 the interfaces you may expect as part of a list container
 (or a set) are not present.
+
+Aside from the [tests](tests) within the crate source code, a complete
+usage example can be found
+[here](https://github.com/jwhitham/aoc/tree/master/2022/20).
 
