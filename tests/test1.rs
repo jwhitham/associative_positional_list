@@ -31,7 +31,7 @@ fn load(filename: &str) -> Problem {
         }
     }
     p.size = p.order_to_value.len();
-    return p;
+    p
 }
 
 fn mix(p: &mut Problem) {
@@ -87,13 +87,13 @@ fn get_coords(p: &Problem) -> isize {
     let a = *p.order_to_value.get(*p.orders.get((zero_index + 1000) % p.size).unwrap()).unwrap();
     let b = *p.order_to_value.get(*p.orders.get((zero_index + 2000) % p.size).unwrap()).unwrap();
     let c = *p.order_to_value.get(*p.orders.get((zero_index + 3000) % p.size).unwrap()).unwrap();
-    return a + b + c;
+    a + b + c
 }
 
 fn part1(filename: &str) -> isize {
     let mut p = load(filename);
     mix(&mut p);
-    return get_coords(&p);
+    get_coords(&p)
 }
 
 fn part2(filename: &str) -> isize {
@@ -104,26 +104,26 @@ fn part2(filename: &str) -> isize {
     for _ in 0 .. 10 {
         mix(&mut p);
     }
-    return get_coords(&p);
+    get_coords(&p)
 }
 
 #[test]
 fn test_part1_example() {
-    assert_eq!(part1(&"tests/test1.example"), 3);
+    assert_eq!(part1("tests/test1.example"), 3);
 }
 
 #[test]
 fn test_part1_problem() {
-    assert_eq!(part1(&"tests/test1.problem"), 2215);
+    assert_eq!(part1("tests/test1.problem"), 2215);
 }
 
 #[test]
 fn test_part2_example() {
-    assert_eq!(part2(&"tests/test1.example"), 1623178306);
+    assert_eq!(part2("tests/test1.example"), 1623178306);
 }
 
 #[test]
 fn test_part2_problem() {
-    assert_eq!(part2(&"tests/test1.problem"), 8927480683);
+    assert_eq!(part2("tests/test1.problem"), 8927480683);
 }
 

@@ -129,7 +129,7 @@ where
     /// Will panic if the index is not less than the length.
     type Output = ValueType;
 
-    fn index(self: &Self, index: usize) -> &Self::Output {
+    fn index(&self, index: usize) -> &Self::Output {
         return self.get(index).unwrap();
     }
 }
@@ -139,7 +139,7 @@ where
     ValueType: std::hash::Hash + Eq + Clone,
 {
     /// Compare the value of a AssociativePositionalList to another.
-    fn eq(self: &Self, other: &Self) -> bool {
+    fn eq(&self, other: &Self) -> bool {
         if self.len() != other.len() {
             return false;
         }
@@ -171,7 +171,7 @@ impl<ValueType> Debug for AssociativePositionalList<ValueType>
 where
     ValueType: std::hash::Hash + Eq + Clone + Debug,
 {
-    fn fmt(self: &Self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         return f.debug_list().entries(self.iter()).finish();
     }
 }
@@ -189,7 +189,7 @@ where
             p.insert(i, x.clone());
             i += 1;
         }
-        return p;
+        p
     }
 }
 
@@ -260,7 +260,7 @@ where
 
         // Return the value referenced at the top of the stack
         let n: &AVLNode<ValueType> = self.parent.iget(self.stack.last().unwrap().index);
-        return Some(n.value.clone());
+        Some(n.value.clone())
     }
 }
 
@@ -270,55 +270,53 @@ where
 {
     /// Makes a new, empty AssociativePositionalList.
     pub fn new() -> Self {
-        return AssociativePositionalList {
+        AssociativePositionalList {
             data: Vec::new(),
             lookup: HashMap::new(),
-        };
+        }
     }
 
-    fn iget(self: &Self, index: InternalIndex) -> &AVLNode<ValueType> {
+    fn iget(&self, index: InternalIndex) -> &AVLNode<ValueType> {
         return self.data.get(index).unwrap();
     }
 
-    fn iget_mut(self: &mut Self, index: InternalIndex) -> &mut AVLNode<ValueType> {
+    fn iget_mut(&mut self, index: InternalIndex) -> &mut AVLNode<ValueType> {
         return self.data.get_mut(index).unwrap();
     }
 
-    fn head(self: &Self) -> &AVLNode<ValueType> {
+    fn head(&self) -> &AVLNode<ValueType> {
         if self.data.is_empty() {
             panic!("cannot access head() until one element has been inserted");
         }
         return self.iget(HEAD_INDEX);
     }
 
-    fn left_rank(self: &Self, index: InternalIndex) -> ExternalIndex {
+    fn left_rank(&self, index: InternalIndex) -> ExternalIndex {
         let c = self.iget(index).child[0];
         if c != NO_INDEX {
             return self.iget(c).rank;
         }
-        return 0;
+        0
     }
 
     /// Returns true if the list is empty
-    pub fn is_empty(self: &Self) -> bool {
-        return self.lookup.is_empty();
+    pub fn is_empty(&self) -> bool {
+        self.lookup.is_empty()
     }
 
     /// Returns the number of items in the list
-    pub fn len(self: &Self) -> ExternalIndex {
-        return self.lookup.len();
+    pub fn len(&self) -> ExternalIndex {
+        self.lookup.len()
     }
 
     /// Returns the index where `value` can be found, or `None` if `value` is not present.
     ///
     /// Note: If values have not always been unique within the list, then the `find` method's
     /// return is not defined.
-    pub fn find(self: &Self, value: &ValueType) -> Option<ExternalIndex> {
+    pub fn find(&self, value: &ValueType) -> Option<ExternalIndex> {
         let pp: Option<&InternalIndex> = self.lookup.get(value);
 
-        if pp.is_none() {
-            return None; // This value does not exist (or the rule about uniqueness wasn't followed)
-        }
+        pp?;
         let mut p: InternalIndex = *pp.unwrap();
         if self.iget(p).value != *value {
             return None; // The value has changed, the rule about uniqueness wasn't followed
@@ -334,12 +332,12 @@ where
                 p = self.iget(p).parent;
             }
         }
-        return Some(ext_index);
+        Some(ext_index)
     }
 
     /// Returns a reference to the value at `index`, if `index` is less than the length of the list.
     /// Otherwise returns `None`.
-    pub fn get(self: &Self, index: ExternalIndex) -> Option<&ValueType> {
+    pub fn get(&self, index: ExternalIndex) -> Option<&ValueType> {
         if self.data.is_empty() {
             // nothing was ever inserted into the list
             return None;
@@ -362,7 +360,7 @@ where
     }
 
     /// Returns an iterator over all values in list order.
-    pub fn iter<'a>(self: &'a Self) -> Iter<'a, ValueType> {
+    pub fn iter<'a>(&'a self) -> Iter<'a, ValueType> {
         let mut stack: Vec<IterStackItem> = Vec::new();
         if !self.is_empty() {
             // If the list is non-empty, begin iteration at the head
@@ -371,14 +369,14 @@ where
                 direction: 1,
             });
         }
-        return Iter {
-            parent: &self,
-            stack: stack,
-        };
+        Iter {
+            parent: self,
+            stack,
+        }
     }
 
     /// Remove all items from the list
-    pub fn clear(self: &mut Self) {
+    pub fn clear(&mut self) {
         if !self.data.is_empty() {
             // Quickly reset the head of the list
             self.lookup.clear();
@@ -387,20 +385,20 @@ where
         }
     }
 
-    fn new_node(self: &mut Self, value: ValueType) -> InternalIndex {
+    fn new_node(&mut self, value: ValueType) -> InternalIndex {
         let n: AVLNode<ValueType> = AVLNode {
             child: [NO_INDEX, NO_INDEX],
-            value: value,
+            value,
             balance: 0,
             direction: 0,
             rank: 0,
             parent: NO_INDEX,
         };
         self.data.push(n);
-        return self.data.len() - 1;
+        self.data.len() - 1
     }
 
-    fn free_node(self: &mut Self, remove_index: InternalIndex) {
+    fn free_node(&mut self, remove_index: InternalIndex) {
         // Swap with the item at the end
         let replacement: AVLNode<ValueType> = self.data.pop().unwrap();
         let replacement_index: InternalIndex = self.data.len();
@@ -439,7 +437,7 @@ where
     ///
     /// * If the set did not previously contain this value, true is returned.
     /// * If the set already contained this value, false is returned.
-    pub fn insert(self: &mut Self, index: ExternalIndex, value: ValueType) -> bool {
+    pub fn insert(&mut self, index: ExternalIndex, value: ValueType) -> bool {
         if self.data.is_empty() {
             // Tree has never been used before - add the HEAD_INDEX node
             if self.new_node(value.clone()) != HEAD_INDEX {
@@ -574,11 +572,11 @@ where
             self.iget_mut(p).parent = t;
             self.iget_mut(p).direction = 0;
         }
-        return true;
+        true
     }
 
     fn single_rotation(
-        self: &mut Self,
+        &mut self,
         r: InternalIndex,
         s: InternalIndex,
         direction: Direction,
@@ -609,11 +607,11 @@ where
             self.iget_mut(c).parent = s;
             self.iget_mut(c).direction = direction;
         }
-        return p;
+        p
     }
 
     fn double_rotation(
-        self: &mut Self,
+        &mut self,
         r: InternalIndex,
         s: InternalIndex,
         direction: Direction,
@@ -668,10 +666,10 @@ where
             self.iget_mut(rc).direction = 1 - direction;
         }
 
-        return p;
+        p
     }
 
-    fn rerank(self: &mut Self, node: InternalIndex) {
+    fn rerank(&mut self, node: InternalIndex) {
         self.iget_mut(node).rank = 1;
         for i in 0..2 {
             if self.iget(node).child[i] != NO_INDEX {
@@ -682,7 +680,7 @@ where
 
     /// Removes the value at `index`, causing the indexes of all items with index > `index`
     /// to be decreased by 1. No effect if `index` is not valid.
-    pub fn remove(self: &mut Self, index: ExternalIndex) {
+    pub fn remove(&mut self, index: ExternalIndex) {
         if self.data.is_empty() {
             // nothing was ever inserted into the list
             return;
@@ -884,7 +882,7 @@ mod test {
             if c2 != NO_INDEX {
                 d2 = 1 + get_max_depth(test_me, c2);
             }
-            return Depth::max(d1, d2);
+            Depth::max(d1, d2)
         }
 
         fn get_balance(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Balance {
@@ -898,7 +896,7 @@ mod test {
             if c2 != NO_INDEX {
                 d2 = 1 + get_max_depth(test_me, c2);
             }
-            return ((d2 as isize) - (d1 as isize)) as Balance;
+            ((d2 as isize) - (d1 as isize)) as Balance
         }
 
         fn get_rank(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Rank {
@@ -909,7 +907,7 @@ mod test {
                     rank += get_rank(test_me, c);
                 }
             }
-            return rank;
+            rank
         }
 
         // Check that a subtree (with root 'node') is internally consistent
@@ -1003,14 +1001,14 @@ mod test {
             // Check that the tree matches the reference list
             let c = test_me.head().child[1];
             if c == NO_INDEX {
-                assert!(ref_list.len() == 0);
+                assert!(ref_list.is_empty());
                 assert!(test_me.is_empty());
             } else {
-                assert!(ref_list.len() != 0); // size of tree should be non-zero
+                assert!(!ref_list.is_empty()); // size of tree should be non-zero
                 assert!(!test_me.is_empty());
                 // size of 'lookup' hash should match size of tree if values are unique
                 assert_eq!(test_me.iget(c).rank, test_me.lookup.len());
-                check_with_list_node(test_me, c, &ref_list.as_slice());
+                check_with_list_node(test_me, c, ref_list.as_slice());
             }
 
             // Test the iterator
@@ -1085,12 +1083,12 @@ mod test {
         }
         // use a random add/remove test
         for k in (test_size + 1)..(test_size * 10) + 1 {
-            if rng.gen_ratio(1, 2) && (ref_list.len() > 0) {
+            if rng.gen_ratio(1, 2) && !ref_list.is_empty() {
                 // test removing a random value
                 let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
                 let v: &TestValueType = ref_list.get(i).unwrap();
 
-                assert_eq!(test_me.find(v).unwrap() as usize, i);
+                assert_eq!(test_me.find(v).unwrap(), i);
                 ref_list.remove(i);
                 test_me.remove(i);
             } else {
@@ -1100,12 +1098,12 @@ mod test {
                 let rc = test_me.insert(i, k);
                 assert_eq!(rc, true);
                 let j = test_me.find(&k);
-                assert_eq!(j.unwrap() as usize, i);
+                assert_eq!(j.unwrap(), i);
             }
             check_all(&test_me, &ref_list);
         }
         // remove the rest of the items
-        while ref_list.len() > 0 {
+        while !ref_list.is_empty() {
             let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
             ref_list.remove(i);
             test_me.remove(i);

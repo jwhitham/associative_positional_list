@@ -19,7 +19,7 @@ impl CrabGame {
     fn new(initial_state: &str, number_of_cups: usize) -> Self {
         let mut cg = Self {
             all_cups: AssociativePositionalList::new(),
-            number_of_cups: number_of_cups,
+            number_of_cups,
         };
 
         let bytes = Vec::from_iter(initial_state.bytes());
@@ -30,10 +30,10 @@ impl CrabGame {
         for i in bytes.len() + 1 .. number_of_cups + 1 {
             cg.all_cups.insert(i, i);
         }
-        return cg;
+        cg
     }
 
-    fn play(self: &mut Self, number_of_rounds: usize) {
+    fn play(&mut self, number_of_rounds: usize) {
         for _ in 0 .. number_of_rounds {
             let current_cup = *self.all_cups.get(0).unwrap();
 
@@ -69,7 +69,7 @@ impl CrabGame {
     }
 
     #[allow(dead_code)]
-    fn to_string(self: &Self) -> String {
+    fn to_string(&self) -> String {
         let current_cup = self.all_cups.get(0).unwrap();
         let mut output = String::new();
         for i in 0 .. usize::min(self.number_of_cups, 10) {
@@ -77,32 +77,32 @@ impl CrabGame {
             if v == current_cup {
                 output.push_str(" (");
                 output.push_str(&v.to_string());
-                output.push_str(")");
+                output.push(')');
             } else {
-                output.push_str(" ");
+                output.push(' ');
                 output.push_str(&v.to_string());
             }
         }
-        return output;
+        output
     }
 
-    fn part_1_result(self: &Self) -> String {
+    fn part_1_result(&self) -> String {
         let mut iter = self.all_cups.find(&1).unwrap();
         let mut output = String::new();
         for _ in 0 .. usize::min(self.number_of_cups, 8) {
             iter = (iter + 1) % self.number_of_cups;
             output.push_str(&self.all_cups.get(iter).unwrap().to_string());
         }
-        return output;
+        output
     }
 
-    fn part_2_result(self: &Self) -> u64 {
+    fn part_2_result(&self) -> u64 {
         let mut iter = self.all_cups.find(&1).unwrap();
         iter = (iter + 1) % self.number_of_cups;
         let r1 = *self.all_cups.get(iter).unwrap() as u64;
         iter = (iter + 1) % self.number_of_cups;
         let r2 = *self.all_cups.get(iter).unwrap() as u64;
-        return r1 * r2;  // <-- that's numberwang
+        r1 * r2  // <-- that's numberwang
     }
 }
 
