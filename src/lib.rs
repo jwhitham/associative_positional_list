@@ -11,6 +11,7 @@
 // * insert and remove operations are not recursive
 // * a "head" node is present after the first value is inserted, so that "empty" is not a special case
 
+use std::cmp::Ordering;
 use std::collections::HashMap;
 use std::fmt::Debug;
 use std::fmt::Formatter;
@@ -104,6 +105,8 @@ const HEAD_INDEX: InternalIndex = 0;
 /// [AVL]: https://en.wikipedia.org/wiki/AVL_tree
 /// [Knuth's TAOCP]: https://en.wikipedia.org/wiki/The_Art_of_Computer_Programming
 ///
+
+#[derive(Default)]
 pub struct AssociativePositionalList<ValueType>
 where
     ValueType: std::hash::Hash + Eq + Clone,
@@ -184,10 +187,8 @@ where
         iter: I,
     ) -> AssociativePositionalList<ValueType> {
         let mut p: AssociativePositionalList<ValueType> = AssociativePositionalList::new();
-        let mut i: usize = 0;
-        for x in iter {
+        for (i, x) in iter.into_iter().enumerate() {
             p.insert(i, x.clone());
-            i += 1;
         }
         p
     }
@@ -360,7 +361,7 @@ where
     }
 
     /// Returns an iterator over all values in list order.
-    pub fn iter<'a>(&'a self) -> Iter<'a, ValueType> {
+    pub fn iter(&self) -> Iter<ValueType> {
         let mut stack: Vec<IterStackItem> = Vec::new();
         if !self.is_empty() {
             // If the list is non-empty, begin iteration at the head
@@ -704,18 +705,21 @@ where
 
             // element will be removed below p
             self.iget_mut(p).rank -= 1;
-            if c_index < self.left_rank(p) {
-                adjust_p = p;
-                adjust_direction = 0;
-                p = self.iget(p).child[0];
-            } else if c_index > self.left_rank(p) {
-                adjust_p = p;
-                adjust_direction = 1;
-                c_index -= self.left_rank(p) + 1;
-                p = self.iget(p).child[1];
-            } else {
-                // found
-                break;
+            match c_index.cmp(&self.left_rank(p)) {
+                Ordering::Less => {
+                    adjust_p = p;
+                    adjust_direction = 0;
+                    p = self.iget(p).child[0];
+                }
+                Ordering::Equal => {
+                    break;
+                }
+                Ordering::Greater => {
+                    adjust_p = p;
+                    adjust_direction = 1;
+                    c_index -= self.left_rank(p) + 1;
+                    p = self.iget(p).child[1];
+                }
             }
         }
         let free_before_returning: InternalIndex;
@@ -1046,9 +1050,9 @@ mod test {
         // initially fill the list with some items in random positions
         for k in 1..test_size + 1 {
             let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
-            let rc = test_me.insert(i as usize, k);
+            let inserted = test_me.insert(i as usize, k);
             ref_list.insert(i as usize, k);
-            assert_eq!(rc, true);
+            assert!(inserted);
             check_all(&test_me, &ref_list);
         }
         assert!(!test_me.is_empty());
@@ -1062,13 +1066,13 @@ mod test {
         // try adding some items more than once (random positions again)
         for k in 1..10 {
             let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
-            let rc = test_me.insert(i as usize, k);
-            assert_eq!(rc, false);
+            let inserted = test_me.insert(i as usize, k);
+            assert!(!inserted);
         }
         for k in 1..10 {
             let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
-            let rc = test_me.insert(i as usize, test_size - k);
-            assert_eq!(rc, false);
+            let inserted = test_me.insert(i as usize, test_size - k);
+            assert!(!inserted);
         }
         check_all(&test_me, &ref_list);
         // test equality when some items are present
@@ -1095,8 +1099,8 @@ mod test {
                 // test adding a random value
                 let i: usize = rng.gen_range(0..ref_list.len() + 1);
                 ref_list.insert(i, k);
-                let rc = test_me.insert(i, k);
-                assert_eq!(rc, true);
+                let inserted = test_me.insert(i, k);
+                assert!(inserted);
                 let j = test_me.find(&k);
                 assert_eq!(j.unwrap(), i);
             }
@@ -1132,9 +1136,9 @@ mod test {
             }
             for k in 1..10 {
                 let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
-                let rc = test_me.insert(i as usize, k);
+                let inserted = test_me.insert(i as usize, k);
                 ref_list.insert(i as usize, k);
-                assert_eq!(rc, true);
+                assert!(inserted);
                 check_all(&test_me, &ref_list);
             }
         }
@@ -1143,10 +1147,8 @@ mod test {
         {
             let mut another: TestAssociativePositionalList = AssociativePositionalList::new();
             assert!(test_me != another);
-            let mut i: usize = 0;
-            for x in test_me.iter() {
+            for (i, x) in test_me.iter().enumerate() {
                 another.insert(i, x);
-                i += 1;
             }
             assert!(test_me == another); // the other list has the same values
             let v = another[1];

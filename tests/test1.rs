@@ -22,13 +22,11 @@ fn load(filename: &str) -> Problem {
         order_to_value: Vec::new(),
         size: 0,
     };
-    for line in io::BufReader::new(file).lines() {
-        if let Ok(line_string) = line {
-            let value: isize = line_string.parse().expect("n");
-            let order: usize = p.order_to_value.len();
-            p.orders.insert(order, order);
-            p.order_to_value.push(value);
-        }
+    for line_string in io::BufReader::new(file).lines().flatten() {
+        let value: isize = line_string.parse().expect("n");
+        let order: usize = p.order_to_value.len();
+        p.orders.insert(order, order);
+        p.order_to_value.push(value);
     }
     p.size = p.order_to_value.len();
     p
