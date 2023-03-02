@@ -12,9 +12,9 @@
 // * a "head" node is present after the first value is inserted, so that "empty" is not a special case
 
 use std::collections::HashMap;
-use std::ops::Index;
 use std::fmt::Debug;
 use std::fmt::Formatter;
+use std::ops::Index;
 
 type InternalIndex = usize;
 type ExternalIndex = usize;
@@ -28,7 +28,7 @@ const HEAD_INDEX: InternalIndex = 0;
 /// `insert`ed and `remove`d at any index. The value at any index can be accessed with `get`.
 /// But unlike other list containers such as [`Vec`], the association between
 /// index and value is reversible, and the index for a value may be determined
-/// using `find`. 
+/// using `find`.
 ///
 /// AssociativePositionalList requires values to be unique (like a set).
 /// Inserting the same value more than once has no effect.
@@ -74,7 +74,7 @@ const HEAD_INDEX: InternalIndex = 0;
 ///
 /// # Time complexity
 ///
-/// The `insert`, `get`, `remove` and `find` operations have logarithmic 
+/// The `insert`, `get`, `remove` and `find` operations have logarithmic
 /// time complexity (i.e. O(log N) operations are required).
 ///
 /// `len`, `is_empty` and `clear` have constant time.
@@ -86,7 +86,7 @@ const HEAD_INDEX: InternalIndex = 0;
 /// container (or a set) are not present.
 ///
 /// # Implementation
-/// 
+///
 /// AssociativePositionalList is implemented using a self-balancing binary tree. These are most commonly used
 /// to implement ordered associative data structures, similar to [`HashMap`] but with values
 /// stored in key order. But they can also be used to implement indexed data structures such
@@ -101,10 +101,13 @@ const HEAD_INDEX: InternalIndex = 0;
 ///
 /// Insert and remove operations are iterative (no recursion).
 ///
-/// [AVL]: https://en.wikipedia.org/wiki/AVL_tree 
+/// [AVL]: https://en.wikipedia.org/wiki/AVL_tree
 /// [Knuth's TAOCP]: https://en.wikipedia.org/wiki/The_Art_of_Computer_Programming
 ///
-pub struct AssociativePositionalList<ValueType> where ValueType: std::hash::Hash + Eq + Clone {
+pub struct AssociativePositionalList<ValueType>
+where
+    ValueType: std::hash::Hash + Eq + Clone,
+{
     lookup: HashMap<ValueType, InternalIndex>,
     data: Vec<AVLNode<ValueType>>,
 }
@@ -119,7 +122,9 @@ struct AVLNode<ValueType> {
 }
 
 impl<ValueType> Index<usize> for AssociativePositionalList<ValueType>
-        where ValueType: std::hash::Hash + Eq + Clone {
+where
+    ValueType: std::hash::Hash + Eq + Clone,
+{
     /// Get the value at the specified index in the AssociativePositionalList.
     /// Will panic if the index is not less than the length.
     type Output = ValueType;
@@ -130,8 +135,9 @@ impl<ValueType> Index<usize> for AssociativePositionalList<ValueType>
 }
 
 impl<ValueType> PartialEq for AssociativePositionalList<ValueType>
-        where ValueType: std::hash::Hash + Eq + Clone {
-
+where
+    ValueType: std::hash::Hash + Eq + Clone,
+{
     /// Compare the value of a AssociativePositionalList to another.
     fn eq(self: &Self, other: &Self) -> bool {
         if self.len() != other.len() {
@@ -140,6 +146,15 @@ impl<ValueType> PartialEq for AssociativePositionalList<ValueType>
         let mut it1 = self.iter();
         let mut it2 = other.iter();
         loop {
+            match (it1.next(), it2.next()) {
+                (None, a) => {
+                    return a.is_none();
+                }
+                (Some(x), Some(y)) if x != y => {
+                    return false;
+                }
+                _ => {}
+            }
             let v1 = it1.next();
             let v2 = it2.next();
             if v1.is_none() {
@@ -153,15 +168,21 @@ impl<ValueType> PartialEq for AssociativePositionalList<ValueType>
 }
 
 impl<ValueType> Debug for AssociativePositionalList<ValueType>
-        where ValueType: std::hash::Hash + Eq + Clone + Debug {
+where
+    ValueType: std::hash::Hash + Eq + Clone + Debug,
+{
     fn fmt(self: &Self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
         return f.debug_list().entries(self.iter()).finish();
     }
 }
 
 impl<ValueType> FromIterator<ValueType> for AssociativePositionalList<ValueType>
-        where ValueType: std::hash::Hash + Eq + Clone {
-    fn from_iter<I: IntoIterator<Item = ValueType>>(iter: I) -> AssociativePositionalList<ValueType> {
+where
+    ValueType: std::hash::Hash + Eq + Clone,
+{
+    fn from_iter<I: IntoIterator<Item = ValueType>>(
+        iter: I,
+    ) -> AssociativePositionalList<ValueType> {
         let mut p: AssociativePositionalList<ValueType> = AssociativePositionalList::new();
         let mut i: usize = 0;
         for x in iter {
@@ -178,12 +199,18 @@ struct IterStackItem {
 }
 
 /// This is an iterator over elements in an AssociativePositionalList
-pub struct Iter<'a, ValueType: 'a> where ValueType: std::hash::Hash + Eq + Clone {
+pub struct Iter<'a, ValueType: 'a>
+where
+    ValueType: std::hash::Hash + Eq + Clone,
+{
     stack: Vec<IterStackItem>,
     parent: &'a AssociativePositionalList<ValueType>,
 }
 
-impl<'a, ValueType> Iterator for Iter<'a, ValueType> where ValueType: std::hash::Hash + Eq + Clone {
+impl<'a, ValueType> Iterator for Iter<'a, ValueType>
+where
+    ValueType: std::hash::Hash + Eq + Clone,
+{
     type Item = ValueType;
 
     fn next(&mut self) -> Option<Self::Item> {
@@ -228,7 +255,6 @@ impl<'a, ValueType> Iterator for Iter<'a, ValueType> where ValueType: std::hash:
                     // If the stack is now empty, this was the last item
                     return None;
                 }
-
             }
         }
 
@@ -238,8 +264,10 @@ impl<'a, ValueType> Iterator for Iter<'a, ValueType> where ValueType: std::hash:
     }
 }
 
-impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash::Hash + Eq + Clone {
-
+impl<ValueType> AssociativePositionalList<ValueType>
+where
+    ValueType: std::hash::Hash + Eq + Clone,
+{
     /// Makes a new, empty AssociativePositionalList.
     pub fn new() -> Self {
         return AssociativePositionalList {
@@ -325,14 +353,13 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
             } else if ext_index_copy < self.left_rank(p) {
                 p = self.iget(p).child[0];
             } else if ext_index_copy == self.left_rank(p) {
-                return Some(&self.iget(p).value);  // index found
+                return Some(&self.iget(p).value); // index found
             } else {
                 ext_index_copy -= self.left_rank(p) + 1;
                 p = self.iget(p).child[1];
             }
         }
     }
-
 
     /// Returns an iterator over all values in list order.
     pub fn iter<'a>(self: &'a Self) -> Iter<'a, ValueType> {
@@ -360,7 +387,6 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
         }
     }
 
-
     fn new_node(self: &mut Self, value: ValueType) -> InternalIndex {
         let n: AVLNode<ValueType> = AVLNode {
             child: [NO_INDEX, NO_INDEX],
@@ -387,13 +413,13 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
         // Change the index of "replacement" to be "remove_index" by making
         // new child-parent links
         if let Some(parent) = self.data.get_mut(replacement.parent) {
-            for i in 0 .. 2 as Direction {
+            for i in 0..2 as Direction {
                 if parent.child[i as usize] == replacement_index {
                     parent.child[i as usize] = remove_index;
                 }
             }
         }
-        for i in 0 .. 2 as Direction {
+        for i in 0..2 as Direction {
             if let Some(child) = self.data.get_mut(replacement.child[i as usize]) {
                 child.parent = remove_index;
             }
@@ -421,9 +447,9 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
             }
         }
 
-        let mut p: InternalIndex = self.head().child[1];  // the pointer variable p will move down the tree
-        let mut s: InternalIndex = self.head().child[1];  // s will point to the place where rebalancing may be necessary
-        let mut t: InternalIndex = HEAD_INDEX;            // t will always point to the parent of s
+        let mut p: InternalIndex = self.head().child[1]; // the pointer variable p will move down the tree
+        let mut s: InternalIndex = self.head().child[1]; // s will point to the place where rebalancing may be necessary
+        let mut t: InternalIndex = HEAD_INDEX; // t will always point to the parent of s
         let mut q: InternalIndex;
         let r: InternalIndex;
         let mut direction: Direction;
@@ -551,7 +577,12 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
         return true;
     }
 
-    fn single_rotation(self: &mut Self, r: InternalIndex, s: InternalIndex, direction: Direction) -> InternalIndex {
+    fn single_rotation(
+        self: &mut Self,
+        r: InternalIndex,
+        s: InternalIndex,
+        direction: Direction,
+    ) -> InternalIndex {
         // page 457 A8 single rotation
         // as applied to case 1 (top of page 454) in which s is A and r is B
         // Initially r is a child of s. In the book, direction = 1, as follows:
@@ -566,8 +597,8 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
         // direction = 0 is the same operation applied to a mirror image.
 
         let p = r;
-        self.iget_mut(s).child[direction as usize] = self.iget(r).child[1 - direction as usize];   // beta subtree moved from r to s
-        self.iget_mut(r).child[1 - direction as usize] = s;                    // node r becomes child of s
+        self.iget_mut(s).child[direction as usize] = self.iget(r).child[1 - direction as usize]; // beta subtree moved from r to s
+        self.iget_mut(r).child[1 - direction as usize] = s; // node r becomes child of s
         self.iget_mut(s).balance = 0;
         self.iget_mut(r).balance = 0;
         self.iget_mut(s).direction = 1 - direction;
@@ -581,7 +612,12 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
         return p;
     }
 
-    fn double_rotation(self: &mut Self, r: InternalIndex, s: InternalIndex, direction: Direction) -> InternalIndex {
+    fn double_rotation(
+        self: &mut Self,
+        r: InternalIndex,
+        s: InternalIndex,
+        direction: Direction,
+    ) -> InternalIndex {
         // A9 double rotation
         // as applied to case 2 (top of page 454) in which s is A, r is B, and p is X
         // Initially r is a child of s. In the book, direction = 1, as follows:
@@ -589,7 +625,7 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
         //         |            ->                     |
         //         s            ->                     p
         //       /   \      DoubleRotation           /    \
-        //    alpha   r         ->                 s        r  
+        //    alpha   r         ->                 s        r
         //          /   \       ->               /   \    /   \
         //         p    delta   ->           alpha beta gamma delta
         //       /   \          ->
@@ -599,11 +635,11 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
 
         let a: Balance = if direction > 0 { 1 } else { -1 };
 
-        let p: InternalIndex = self.iget(r).child[1 - direction as usize];              // p is child of r (node X in the book)
+        let p: InternalIndex = self.iget(r).child[1 - direction as usize]; // p is child of r (node X in the book)
         self.iget_mut(r).child[1 - direction as usize] = self.iget(p).child[direction as usize]; // gamma subtree moved from p to r
-        self.iget_mut(p).child[direction as usize] = r;                                 // r becomes child of p
+        self.iget_mut(p).child[direction as usize] = r; // r becomes child of p
         self.iget_mut(s).child[direction as usize] = self.iget(p).child[1 - direction as usize]; // beta subtree moved from p to s
-        self.iget_mut(p).child[1 - direction as usize] = s;                             // s becomes child of p
+        self.iget_mut(p).child[1 - direction as usize] = s; // s becomes child of p
         if self.iget(p).balance == a {
             self.iget_mut(s).balance = -a;
             self.iget_mut(r).balance = 0;
@@ -637,7 +673,7 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
 
     fn rerank(self: &mut Self, node: InternalIndex) {
         self.iget_mut(node).rank = 1;
-        for i in 0 .. 2 {
+        for i in 0..2 {
             if self.iget(node).child[i] != NO_INDEX {
                 self.iget_mut(node).rank += self.iget(self.iget(node).child[i]).rank;
             }
@@ -813,13 +849,11 @@ impl<ValueType> AssociativePositionalList<ValueType> where ValueType: std::hash:
     }
 }
 
-
-
 #[test]
 fn test_randomly() {
     use rand::rngs::StdRng;
-    use rand::SeedableRng;
     use rand::Rng;
+    use rand::SeedableRng;
     type Rank = usize;
     type Depth = usize;
     type TestValueType = u16;
@@ -855,7 +889,7 @@ fn test_randomly() {
 
     fn get_rank(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Rank {
         let mut rank: Rank = 1;
-        for i in 0 .. 2 {
+        for i in 0..2 {
             let c = test_me.iget(node).child[i];
             if c != NO_INDEX {
                 rank += get_rank(test_me, c);
@@ -868,15 +902,15 @@ fn test_randomly() {
     // (parent/child links are correct, nodes appear exactly once, balanced,
     // balance and rank values are correct)
     fn check_consistent_node(
-            test_me: &TestAssociativePositionalList,
-            node: InternalIndex,
-            visited: &mut HashMap<InternalIndex, bool>) {
-       
+        test_me: &TestAssociativePositionalList,
+        node: InternalIndex,
+        visited: &mut HashMap<InternalIndex, bool>,
+    ) {
         assert!(!visited.contains_key(&node));
         visited.insert(node, true);
 
         assert!(node < test_me.data.len());
-        for i in 0 .. 2 as Direction {
+        for i in 0..2 as Direction {
             let child = test_me.iget(node).child[i as usize];
             if child != NO_INDEX {
                 check_consistent_node(test_me, child, visited);
@@ -910,14 +944,16 @@ fn test_randomly() {
     }
 
     // Check that a subtree (with root 'node') matches part of the reference list
-    fn check_with_list_node(test_me: &TestAssociativePositionalList,
-                            node: InternalIndex,
-                            ref_list: &[TestValueType]) {
+    fn check_with_list_node(
+        test_me: &TestAssociativePositionalList,
+        node: InternalIndex,
+        ref_list: &[TestValueType],
+    ) {
         let mut size: Rank = 0;
         let c1 = test_me.iget(node).child[0];
         if c1 != NO_INDEX {
             size += test_me.iget(c1).rank;
-            check_with_list_node(test_me, c1, &ref_list[0 .. size]);
+            check_with_list_node(test_me, c1, &ref_list[0..size]);
         }
         assert_eq!(ref_list[size], test_me.iget(node).value);
 
@@ -928,7 +964,7 @@ fn test_randomly() {
 
         let c2 = test_me.iget(node).child[1];
         if c2 != NO_INDEX {
-            check_with_list_node(test_me, c2, &ref_list[size .. ref_list.len()]);
+            check_with_list_node(test_me, c2, &ref_list[size..ref_list.len()]);
             size += test_me.iget(c2).rank;
         }
         assert_eq!(size, ref_list.len());
@@ -972,7 +1008,7 @@ fn test_randomly() {
         assert_eq!(ref_list.len(), i);
 
         // Test the Index trait
-        for j in 0 .. ref_list.len() {
+        for j in 0..ref_list.len() {
             assert_eq!(ref_list[j], test_me[j]);
         }
     }
@@ -996,8 +1032,8 @@ fn test_randomly() {
     assert_eq!(test_me, test_me);
 
     // initially fill the list with some items in random positions
-    for k in 1 .. test_size + 1 {
-        let i = rng.gen_range(0 .. (ref_list.len() + 1) as TestValueType);
+    for k in 1..test_size + 1 {
+        let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
         let rc = test_me.insert(i as usize, k);
         ref_list.insert(i as usize, k);
         assert_eq!(rc, true);
@@ -1005,20 +1041,20 @@ fn test_randomly() {
     }
     assert!(!test_me.is_empty());
     // check all items are present in the places we expect
-    for k in 1 .. test_size + 1 {
+    for k in 1..test_size + 1 {
         let j = test_me.find(&k);
         assert!(j.is_some());
         assert!(j.unwrap() < ref_list.len());
         assert!(ref_list[j.unwrap()] == k);
     }
     // try adding some items more than once (random positions again)
-    for k in 1 .. 10 {
-        let i = rng.gen_range(0 .. (ref_list.len() + 1) as TestValueType);
+    for k in 1..10 {
+        let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
         let rc = test_me.insert(i as usize, k);
         assert_eq!(rc, false);
     }
-    for k in 1 .. 10 {
-        let i = rng.gen_range(0 .. (ref_list.len() + 1) as TestValueType);
+    for k in 1..10 {
+        let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
         let rc = test_me.insert(i as usize, test_size - k);
         assert_eq!(rc, false);
     }
@@ -1027,17 +1063,17 @@ fn test_randomly() {
     assert!(test_me == test_me);
     assert_eq!(test_me, test_me);
     // remove half of the items (chosen from random positions)
-    for _ in 1 .. (test_size / 2) {
-        let i = rng.gen_range(0 .. ref_list.len() as TestValueType);
+    for _ in 1..(test_size / 2) {
+        let i = rng.gen_range(0..ref_list.len() as TestValueType);
         test_me.remove(i as usize);
         ref_list.remove(i as usize);
         check_all(&test_me, &ref_list);
     }
     // use a random add/remove test
-    for k in (test_size + 1) .. (test_size * 10) + 1 {
+    for k in (test_size + 1)..(test_size * 10) + 1 {
         if rng.gen_ratio(1, 2) && (ref_list.len() > 0) {
             // test removing a random value
-            let i: usize = (rng.gen_range(0 .. ref_list.len() as TestValueType)) as usize;
+            let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
             let v: &TestValueType = ref_list.get(i).unwrap();
 
             assert_eq!(test_me.find(v).unwrap() as usize, i);
@@ -1045,7 +1081,7 @@ fn test_randomly() {
             test_me.remove(i);
         } else {
             // test adding a random value
-            let i: usize = rng.gen_range(0 .. ref_list.len() + 1);
+            let i: usize = rng.gen_range(0..ref_list.len() + 1);
             ref_list.insert(i, k);
             let rc = test_me.insert(i, k);
             assert_eq!(rc, true);
@@ -1056,7 +1092,7 @@ fn test_randomly() {
     }
     // remove the rest of the items
     while ref_list.len() > 0 {
-        let i: usize = (rng.gen_range(0 .. ref_list.len() as TestValueType)) as usize;
+        let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
         ref_list.remove(i);
         test_me.remove(i);
         check_all(&test_me, &ref_list);
@@ -1070,7 +1106,7 @@ fn test_randomly() {
     // iteration 0: an empty but used state
     // iteration 1: a non-empty state
     // iteration 2: an empty and unused state
-    for j in 0 .. 3 {
+    for j in 0..3 {
         if j == 2 {
             test_me = AssociativePositionalList::new();
         }
@@ -1078,12 +1114,12 @@ fn test_randomly() {
         ref_list.clear();
         assert!(test_me.is_empty());
         if j == 2 {
-            assert_eq!(test_me.data.len(), 0);  // empty and never used
+            assert_eq!(test_me.data.len(), 0); // empty and never used
         } else {
-            assert_eq!(test_me.data.len(), 1);  // empty but used
+            assert_eq!(test_me.data.len(), 1); // empty but used
         }
-        for k in 1 .. 10 {
-            let i = rng.gen_range(0 .. (ref_list.len() + 1) as TestValueType);
+        for k in 1..10 {
+            let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
             let rc = test_me.insert(i as usize, k);
             ref_list.insert(i as usize, k);
             assert_eq!(rc, true);
@@ -1100,15 +1136,15 @@ fn test_randomly() {
             another.insert(i, x);
             i += 1;
         }
-        assert!(test_me == another);    // the other list has the same values
+        assert!(test_me == another); // the other list has the same values
         let v = another[1];
         another.remove(1);
-        assert!(test_me != another);    // the other list has a different length
+        assert!(test_me != another); // the other list has a different length
         another.insert(1, 0);
-        assert!(test_me != another);    // the other list has a different value
+        assert!(test_me != another); // the other list has a different value
         another.insert(1, v);
         another.remove(2);
-        assert!(test_me == another);    // the other list has the same values again
+        assert!(test_me == another); // the other list has the same values again
     }
 }
 
@@ -1121,7 +1157,7 @@ fn test_interfaces() {
     assert_eq!(p.len(), 2);
     assert_eq!(p[0], "Hello");
     assert_eq!(p[1], "World");
-    assert_eq!(&format!("{:?}", p), "[\"Hello\", \"World\"]");  // test Debug formatter
+    assert_eq!(&format!("{:?}", p), "[\"Hello\", \"World\"]"); // test Debug formatter
     assert_eq!(p, p);
     assert!(!p.is_empty());
     for n in p.iter() {
@@ -1135,7 +1171,7 @@ fn test_interfaces() {
     assert!(p.is_empty());
     assert_eq!(&format!("{:?}", p), "[]");
     let mut p2: AssociativePositionalList<i8> = AssociativePositionalList::new();
-    for i in 0 .. 5 {
+    for i in 0..5 {
         p2.insert(0, i);
     }
     assert_eq!(&format!("{:?}", p2), "[4, 3, 2, 1, 0]");
