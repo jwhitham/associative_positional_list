@@ -158,14 +158,6 @@ where
                 }
                 _ => {}
             }
-            let v1 = it1.next();
-            let v2 = it2.next();
-            if v1.is_none() {
-                return v2.is_none();
-            }
-            if v1.unwrap() != v2.unwrap() {
-                return false;
-            }
         }
     }
 }
