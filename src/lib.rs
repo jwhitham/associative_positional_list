@@ -849,334 +849,349 @@ where
     }
 }
 
-#[test]
-fn test_randomly() {
-    use rand::rngs::StdRng;
-    use rand::Rng;
-    use rand::SeedableRng;
-    type Rank = usize;
-    type Depth = usize;
-    type TestValueType = u16;
-    type TestAssociativePositionalList = AssociativePositionalList<TestValueType>;
+#[cfg(test)]
+mod test {
+    use super::*;
 
-    fn get_max_depth(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Depth {
-        let mut d1: Depth = 0;
-        let mut d2: Depth = 0;
-        let c1 = test_me.iget(node).child[0];
-        if c1 != NO_INDEX {
-            d1 = 1 + get_max_depth(test_me, c1);
-        }
-        let c2 = test_me.iget(node).child[1];
-        if c2 != NO_INDEX {
-            d2 = 1 + get_max_depth(test_me, c2);
-        }
-        return Depth::max(d1, d2);
+    #[test]
+    fn test_equality() {
+        let a: AssociativePositionalList<i8> = [1].into_iter().collect();
+        let b: AssociativePositionalList<i8> = [].into_iter().collect();
+        let c: AssociativePositionalList<i8> = [1].into_iter().collect();
+        assert_ne!(a, b);
+        assert_ne!(b, a);
+        assert_eq!(a, c);
+        assert_eq!(c, a);
     }
+    #[test]
+    fn test_randomly() {
+        use rand::rngs::StdRng;
+        use rand::Rng;
+        use rand::SeedableRng;
+        type Rank = usize;
+        type Depth = usize;
+        type TestValueType = u16;
+        type TestAssociativePositionalList = AssociativePositionalList<TestValueType>;
 
-    fn get_balance(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Balance {
-        let mut d1: Depth = 0;
-        let mut d2: Depth = 0;
-        let c1 = test_me.iget(node).child[0];
-        if c1 != NO_INDEX {
-            d1 = 1 + get_max_depth(test_me, c1);
+        fn get_max_depth(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Depth {
+            let mut d1: Depth = 0;
+            let mut d2: Depth = 0;
+            let c1 = test_me.iget(node).child[0];
+            if c1 != NO_INDEX {
+                d1 = 1 + get_max_depth(test_me, c1);
+            }
+            let c2 = test_me.iget(node).child[1];
+            if c2 != NO_INDEX {
+                d2 = 1 + get_max_depth(test_me, c2);
+            }
+            return Depth::max(d1, d2);
         }
-        let c2 = test_me.iget(node).child[1];
-        if c2 != NO_INDEX {
-            d2 = 1 + get_max_depth(test_me, c2);
-        }
-        return ((d2 as isize) - (d1 as isize)) as Balance;
-    }
 
-    fn get_rank(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Rank {
-        let mut rank: Rank = 1;
-        for i in 0..2 {
-            let c = test_me.iget(node).child[i];
-            if c != NO_INDEX {
-                rank += get_rank(test_me, c);
+        fn get_balance(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Balance {
+            let mut d1: Depth = 0;
+            let mut d2: Depth = 0;
+            let c1 = test_me.iget(node).child[0];
+            if c1 != NO_INDEX {
+                d1 = 1 + get_max_depth(test_me, c1);
+            }
+            let c2 = test_me.iget(node).child[1];
+            if c2 != NO_INDEX {
+                d2 = 1 + get_max_depth(test_me, c2);
+            }
+            return ((d2 as isize) - (d1 as isize)) as Balance;
+        }
+
+        fn get_rank(test_me: &TestAssociativePositionalList, node: InternalIndex) -> Rank {
+            let mut rank: Rank = 1;
+            for i in 0..2 {
+                let c = test_me.iget(node).child[i];
+                if c != NO_INDEX {
+                    rank += get_rank(test_me, c);
+                }
+            }
+            return rank;
+        }
+
+        // Check that a subtree (with root 'node') is internally consistent
+        // (parent/child links are correct, nodes appear exactly once, balanced,
+        // balance and rank values are correct)
+        fn check_consistent_node(
+            test_me: &TestAssociativePositionalList,
+            node: InternalIndex,
+            visited: &mut HashMap<InternalIndex, bool>,
+        ) {
+            assert!(!visited.contains_key(&node));
+            visited.insert(node, true);
+
+            assert!(node < test_me.data.len());
+            for i in 0..2 as Direction {
+                let child = test_me.iget(node).child[i as usize];
+                if child != NO_INDEX {
+                    check_consistent_node(test_me, child, visited);
+                    assert_eq!(test_me.iget(child).parent, node);
+                    assert_eq!(test_me.iget(child).direction, i);
+                }
+            }
+            let r = get_rank(test_me, node);
+            assert_eq!(r, test_me.iget(node).rank);
+            let x = get_balance(test_me, node);
+            assert!(x >= -1);
+            assert!(x <= 1);
+            assert_eq!(x, test_me.iget(node).balance);
+        }
+
+        // Check that the whole tree is internally consistent
+        fn check_consistent(test_me: &TestAssociativePositionalList) {
+            if test_me.data.is_empty() {
+                // Tree has never been used - check state
+                assert!(test_me.lookup.is_empty());
+                return;
+            }
+            if test_me.head().child[1] == NO_INDEX {
+                return;
+            }
+            assert_eq!(test_me.iget(test_me.head().child[1]).parent, HEAD_INDEX);
+            assert_eq!(test_me.iget(test_me.head().child[1]).direction, 1);
+            let mut visited: HashMap<InternalIndex, bool> = HashMap::new();
+            check_consistent_node(test_me, test_me.head().child[1], &mut visited);
+            assert_eq!(visited.len(), test_me.len());
+        }
+
+        // Check that a subtree (with root 'node') matches part of the reference list
+        fn check_with_list_node(
+            test_me: &TestAssociativePositionalList,
+            node: InternalIndex,
+            ref_list: &[TestValueType],
+        ) {
+            let mut size: Rank = 0;
+            let c1 = test_me.iget(node).child[0];
+            if c1 != NO_INDEX {
+                size += test_me.iget(c1).rank;
+                check_with_list_node(test_me, c1, &ref_list[0..size]);
+            }
+            assert_eq!(ref_list[size], test_me.iget(node).value);
+
+            let node2 = test_me.lookup.get(&test_me.iget(node).value);
+            assert!(node2.is_some());
+            assert_eq!(*node2.unwrap(), node);
+            size += 1;
+
+            let c2 = test_me.iget(node).child[1];
+            if c2 != NO_INDEX {
+                check_with_list_node(test_me, c2, &ref_list[size..ref_list.len()]);
+                size += test_me.iget(c2).rank;
+            }
+            assert_eq!(size, ref_list.len());
+        }
+
+        fn check_with_list(test_me: &TestAssociativePositionalList, ref_list: &Vec<TestValueType>) {
+            if test_me.data.is_empty() {
+                // Tree has never been used - check all state is empty
+                assert!(test_me.lookup.is_empty());
+                assert!(ref_list.is_empty());
+                assert!(Vec::from_iter(test_me.iter()).is_empty());
+                assert!(test_me.is_empty());
+                assert_eq!(test_me.len(), 0);
+                return;
+            }
+            // Check the length is correct
+            assert_eq!(test_me.lookup.len(), ref_list.len());
+            assert_eq!(test_me.data.len(), ref_list.len() + 1); // +1 for HEAD_INDEX element
+            assert_eq!(test_me.len(), ref_list.len());
+            assert!(test_me.get(ref_list.len()).is_none());
+
+            // Check that the tree matches the reference list
+            let c = test_me.head().child[1];
+            if c == NO_INDEX {
+                assert!(ref_list.len() == 0);
+                assert!(test_me.is_empty());
+            } else {
+                assert!(ref_list.len() != 0); // size of tree should be non-zero
+                assert!(!test_me.is_empty());
+                // size of 'lookup' hash should match size of tree if values are unique
+                assert_eq!(test_me.iget(c).rank, test_me.lookup.len());
+                check_with_list_node(test_me, c, &ref_list.as_slice());
+            }
+
+            // Test the iterator
+            let mut i: usize = 0;
+            for value in test_me.iter() {
+                assert_eq!(*ref_list.get(i).unwrap(), value);
+                i += 1;
+            }
+            assert_eq!(ref_list.len(), i);
+
+            // Test the Index trait
+            for j in 0..ref_list.len() {
+                assert_eq!(ref_list[j], test_me[j]);
             }
         }
-        return rank;
-    }
 
-    // Check that a subtree (with root 'node') is internally consistent
-    // (parent/child links are correct, nodes appear exactly once, balanced,
-    // balance and rank values are correct)
-    fn check_consistent_node(
-        test_me: &TestAssociativePositionalList,
-        node: InternalIndex,
-        visited: &mut HashMap<InternalIndex, bool>,
-    ) {
-        assert!(!visited.contains_key(&node));
-        visited.insert(node, true);
-
-        assert!(node < test_me.data.len());
-        for i in 0..2 as Direction {
-            let child = test_me.iget(node).child[i as usize];
-            if child != NO_INDEX {
-                check_consistent_node(test_me, child, visited);
-                assert_eq!(test_me.iget(child).parent, node);
-                assert_eq!(test_me.iget(child).direction, i);
-            }
-        }
-        let r = get_rank(test_me, node);
-        assert_eq!(r, test_me.iget(node).rank);
-        let x = get_balance(test_me, node);
-        assert!(x >= -1);
-        assert!(x <= 1);
-        assert_eq!(x, test_me.iget(node).balance);
-    }
-
-    // Check that the whole tree is internally consistent
-    fn check_consistent(test_me: &TestAssociativePositionalList) {
-        if test_me.data.is_empty() {
-            // Tree has never been used - check state
-            assert!(test_me.lookup.is_empty());
-            return;
-        }
-        if test_me.head().child[1] == NO_INDEX {
-            return;
-        }
-        assert_eq!(test_me.iget(test_me.head().child[1]).parent, HEAD_INDEX);
-        assert_eq!(test_me.iget(test_me.head().child[1]).direction, 1);
-        let mut visited: HashMap<InternalIndex, bool> = HashMap::new();
-        check_consistent_node(test_me, test_me.head().child[1], &mut visited);
-        assert_eq!(visited.len(), test_me.len());
-    }
-
-    // Check that a subtree (with root 'node') matches part of the reference list
-    fn check_with_list_node(
-        test_me: &TestAssociativePositionalList,
-        node: InternalIndex,
-        ref_list: &[TestValueType],
-    ) {
-        let mut size: Rank = 0;
-        let c1 = test_me.iget(node).child[0];
-        if c1 != NO_INDEX {
-            size += test_me.iget(c1).rank;
-            check_with_list_node(test_me, c1, &ref_list[0..size]);
-        }
-        assert_eq!(ref_list[size], test_me.iget(node).value);
-
-        let node2 = test_me.lookup.get(&test_me.iget(node).value);
-        assert!(node2.is_some());
-        assert_eq!(*node2.unwrap(), node);
-        size += 1;
-
-        let c2 = test_me.iget(node).child[1];
-        if c2 != NO_INDEX {
-            check_with_list_node(test_me, c2, &ref_list[size..ref_list.len()]);
-            size += test_me.iget(c2).rank;
-        }
-        assert_eq!(size, ref_list.len());
-    }
-
-    fn check_with_list(test_me: &TestAssociativePositionalList, ref_list: &Vec<TestValueType>) {
-        if test_me.data.is_empty() {
-            // Tree has never been used - check all state is empty
-            assert!(test_me.lookup.is_empty());
-            assert!(ref_list.is_empty());
-            assert!(Vec::from_iter(test_me.iter()).is_empty());
-            assert!(test_me.is_empty());
-            assert_eq!(test_me.len(), 0);
-            return;
-        }
-        // Check the length is correct
-        assert_eq!(test_me.lookup.len(), ref_list.len());
-        assert_eq!(test_me.data.len(), ref_list.len() + 1); // +1 for HEAD_INDEX element
-        assert_eq!(test_me.len(), ref_list.len());
-        assert!(test_me.get(ref_list.len()).is_none());
-
-        // Check that the tree matches the reference list
-        let c = test_me.head().child[1];
-        if c == NO_INDEX {
-            assert!(ref_list.len() == 0);
-            assert!(test_me.is_empty());
-        } else {
-            assert!(ref_list.len() != 0); // size of tree should be non-zero
-            assert!(!test_me.is_empty());
-            // size of 'lookup' hash should match size of tree if values are unique
-            assert_eq!(test_me.iget(c).rank, test_me.lookup.len());
-            check_with_list_node(test_me, c, &ref_list.as_slice());
+        fn check_all(test_me: &TestAssociativePositionalList, ref_list: &Vec<TestValueType>) {
+            check_consistent(test_me);
+            check_with_list(test_me, ref_list);
         }
 
-        // Test the iterator
-        let mut i: usize = 0;
-        for value in test_me.iter() {
-            assert_eq!(*ref_list.get(i).unwrap(), value);
-            i += 1;
-        }
-        assert_eq!(ref_list.len(), i);
+        let mut test_me: TestAssociativePositionalList = AssociativePositionalList::new();
+        let mut ref_list: Vec<TestValueType> = Vec::new();
 
-        // Test the Index trait
-        for j in 0..ref_list.len() {
-            assert_eq!(ref_list[j], test_me[j]);
-        }
-    }
-
-    fn check_all(test_me: &TestAssociativePositionalList, ref_list: &Vec<TestValueType>) {
-        check_consistent(test_me);
-        check_with_list(test_me, ref_list);
-    }
-
-    let mut test_me: TestAssociativePositionalList = AssociativePositionalList::new();
-    let mut ref_list: Vec<TestValueType> = Vec::new();
-
-    check_all(&test_me, &ref_list);
-
-    let mut rng = StdRng::seed_from_u64(1);
-    let test_size: TestValueType = 1000;
-
-    // test without items
-    assert!(test_me.is_empty());
-    assert!(test_me == test_me);
-    assert_eq!(test_me, test_me);
-
-    // initially fill the list with some items in random positions
-    for k in 1..test_size + 1 {
-        let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
-        let rc = test_me.insert(i as usize, k);
-        ref_list.insert(i as usize, k);
-        assert_eq!(rc, true);
         check_all(&test_me, &ref_list);
-    }
-    assert!(!test_me.is_empty());
-    // check all items are present in the places we expect
-    for k in 1..test_size + 1 {
-        let j = test_me.find(&k);
-        assert!(j.is_some());
-        assert!(j.unwrap() < ref_list.len());
-        assert!(ref_list[j.unwrap()] == k);
-    }
-    // try adding some items more than once (random positions again)
-    for k in 1..10 {
-        let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
-        let rc = test_me.insert(i as usize, k);
-        assert_eq!(rc, false);
-    }
-    for k in 1..10 {
-        let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
-        let rc = test_me.insert(i as usize, test_size - k);
-        assert_eq!(rc, false);
-    }
-    check_all(&test_me, &ref_list);
-    // test equality when some items are present
-    assert!(test_me == test_me);
-    assert_eq!(test_me, test_me);
-    // remove half of the items (chosen from random positions)
-    for _ in 1..(test_size / 2) {
-        let i = rng.gen_range(0..ref_list.len() as TestValueType);
-        test_me.remove(i as usize);
-        ref_list.remove(i as usize);
-        check_all(&test_me, &ref_list);
-    }
-    // use a random add/remove test
-    for k in (test_size + 1)..(test_size * 10) + 1 {
-        if rng.gen_ratio(1, 2) && (ref_list.len() > 0) {
-            // test removing a random value
-            let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
-            let v: &TestValueType = ref_list.get(i).unwrap();
 
-            assert_eq!(test_me.find(v).unwrap() as usize, i);
-            ref_list.remove(i);
-            test_me.remove(i);
-        } else {
-            // test adding a random value
-            let i: usize = rng.gen_range(0..ref_list.len() + 1);
-            ref_list.insert(i, k);
-            let rc = test_me.insert(i, k);
-            assert_eq!(rc, true);
-            let j = test_me.find(&k);
-            assert_eq!(j.unwrap() as usize, i);
-        }
-        check_all(&test_me, &ref_list);
-    }
-    // remove the rest of the items
-    while ref_list.len() > 0 {
-        let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
-        ref_list.remove(i);
-        test_me.remove(i);
-        check_all(&test_me, &ref_list);
-    }
-    // test without items again
-    assert!(test_me.is_empty());
-    assert!(test_me == test_me);
-    assert_eq!(test_me, test_me);
+        let mut rng = StdRng::seed_from_u64(1);
+        let test_size: TestValueType = 1000;
 
-    // check that the list works the same after clearing:
-    // iteration 0: an empty but used state
-    // iteration 1: a non-empty state
-    // iteration 2: an empty and unused state
-    for j in 0..3 {
-        if j == 2 {
-            test_me = AssociativePositionalList::new();
-        }
-        test_me.clear();
-        ref_list.clear();
+        // test without items
         assert!(test_me.is_empty());
-        if j == 2 {
-            assert_eq!(test_me.data.len(), 0); // empty and never used
-        } else {
-            assert_eq!(test_me.data.len(), 1); // empty but used
-        }
-        for k in 1..10 {
+        assert!(test_me == test_me);
+        assert_eq!(test_me, test_me);
+
+        // initially fill the list with some items in random positions
+        for k in 1..test_size + 1 {
             let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
             let rc = test_me.insert(i as usize, k);
             ref_list.insert(i as usize, k);
             assert_eq!(rc, true);
             check_all(&test_me, &ref_list);
         }
-    }
-
-    // compare to a different list in various states
-    {
-        let mut another: TestAssociativePositionalList = AssociativePositionalList::new();
-        assert!(test_me != another);
-        let mut i: usize = 0;
-        for x in test_me.iter() {
-            another.insert(i, x);
-            i += 1;
+        assert!(!test_me.is_empty());
+        // check all items are present in the places we expect
+        for k in 1..test_size + 1 {
+            let j = test_me.find(&k);
+            assert!(j.is_some());
+            assert!(j.unwrap() < ref_list.len());
+            assert!(ref_list[j.unwrap()] == k);
         }
-        assert!(test_me == another); // the other list has the same values
-        let v = another[1];
-        another.remove(1);
-        assert!(test_me != another); // the other list has a different length
-        another.insert(1, 0);
-        assert!(test_me != another); // the other list has a different value
-        another.insert(1, v);
-        another.remove(2);
-        assert!(test_me == another); // the other list has the same values again
-    }
-}
+        // try adding some items more than once (random positions again)
+        for k in 1..10 {
+            let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
+            let rc = test_me.insert(i as usize, k);
+            assert_eq!(rc, false);
+        }
+        for k in 1..10 {
+            let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
+            let rc = test_me.insert(i as usize, test_size - k);
+            assert_eq!(rc, false);
+        }
+        check_all(&test_me, &ref_list);
+        // test equality when some items are present
+        assert!(test_me == test_me);
+        assert_eq!(test_me, test_me);
+        // remove half of the items (chosen from random positions)
+        for _ in 1..(test_size / 2) {
+            let i = rng.gen_range(0..ref_list.len() as TestValueType);
+            test_me.remove(i as usize);
+            ref_list.remove(i as usize);
+            check_all(&test_me, &ref_list);
+        }
+        // use a random add/remove test
+        for k in (test_size + 1)..(test_size * 10) + 1 {
+            if rng.gen_ratio(1, 2) && (ref_list.len() > 0) {
+                // test removing a random value
+                let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
+                let v: &TestValueType = ref_list.get(i).unwrap();
 
-#[test]
-fn test_interfaces() {
-    let mut p: AssociativePositionalList<String> = AssociativePositionalList::new();
-    p.insert(0, "Hello".to_string());
-    p.insert(1, "World".to_string());
-    assert_eq!(p.find(&"World".to_string()), Some(1));
-    assert_eq!(p.len(), 2);
-    assert_eq!(p[0], "Hello");
-    assert_eq!(p[1], "World");
-    assert_eq!(&format!("{:?}", p), "[\"Hello\", \"World\"]"); // test Debug formatter
-    assert_eq!(p, p);
-    assert!(!p.is_empty());
-    for n in p.iter() {
-        assert!(n == "Hello" || n == "World");
+                assert_eq!(test_me.find(v).unwrap() as usize, i);
+                ref_list.remove(i);
+                test_me.remove(i);
+            } else {
+                // test adding a random value
+                let i: usize = rng.gen_range(0..ref_list.len() + 1);
+                ref_list.insert(i, k);
+                let rc = test_me.insert(i, k);
+                assert_eq!(rc, true);
+                let j = test_me.find(&k);
+                assert_eq!(j.unwrap() as usize, i);
+            }
+            check_all(&test_me, &ref_list);
+        }
+        // remove the rest of the items
+        while ref_list.len() > 0 {
+            let i: usize = (rng.gen_range(0..ref_list.len() as TestValueType)) as usize;
+            ref_list.remove(i);
+            test_me.remove(i);
+            check_all(&test_me, &ref_list);
+        }
+        // test without items again
+        assert!(test_me.is_empty());
+        assert!(test_me == test_me);
+        assert_eq!(test_me, test_me);
+
+        // check that the list works the same after clearing:
+        // iteration 0: an empty but used state
+        // iteration 1: a non-empty state
+        // iteration 2: an empty and unused state
+        for j in 0..3 {
+            if j == 2 {
+                test_me = AssociativePositionalList::new();
+            }
+            test_me.clear();
+            ref_list.clear();
+            assert!(test_me.is_empty());
+            if j == 2 {
+                assert_eq!(test_me.data.len(), 0); // empty and never used
+            } else {
+                assert_eq!(test_me.data.len(), 1); // empty but used
+            }
+            for k in 1..10 {
+                let i = rng.gen_range(0..(ref_list.len() + 1) as TestValueType);
+                let rc = test_me.insert(i as usize, k);
+                ref_list.insert(i as usize, k);
+                assert_eq!(rc, true);
+                check_all(&test_me, &ref_list);
+            }
+        }
+
+        // compare to a different list in various states
+        {
+            let mut another: TestAssociativePositionalList = AssociativePositionalList::new();
+            assert!(test_me != another);
+            let mut i: usize = 0;
+            for x in test_me.iter() {
+                another.insert(i, x);
+                i += 1;
+            }
+            assert!(test_me == another); // the other list has the same values
+            let v = another[1];
+            another.remove(1);
+            assert!(test_me != another); // the other list has a different length
+            another.insert(1, 0);
+            assert!(test_me != another); // the other list has a different value
+            another.insert(1, v);
+            another.remove(2);
+            assert!(test_me == another); // the other list has the same values again
+        }
     }
-    p.remove(0);
-    assert_eq!(p[0], "World");
-    assert_eq!(p.find(&"Hello".to_string()), None);
-    assert_eq!(p.find(&"World".to_string()), Some(0));
-    p.remove(0);
-    assert!(p.is_empty());
-    assert_eq!(&format!("{:?}", p), "[]");
-    let mut p2: AssociativePositionalList<i8> = AssociativePositionalList::new();
-    for i in 0..5 {
-        p2.insert(0, i);
+
+    #[test]
+    fn test_interfaces() {
+        let mut p: AssociativePositionalList<String> = AssociativePositionalList::new();
+        p.insert(0, "Hello".to_string());
+        p.insert(1, "World".to_string());
+        assert_eq!(p.find(&"World".to_string()), Some(1));
+        assert_eq!(p.len(), 2);
+        assert_eq!(p[0], "Hello");
+        assert_eq!(p[1], "World");
+        assert_eq!(&format!("{:?}", p), "[\"Hello\", \"World\"]"); // test Debug formatter
+        assert_eq!(p, p);
+        assert!(!p.is_empty());
+        for n in p.iter() {
+            assert!(n == "Hello" || n == "World");
+        }
+        p.remove(0);
+        assert_eq!(p[0], "World");
+        assert_eq!(p.find(&"Hello".to_string()), None);
+        assert_eq!(p.find(&"World".to_string()), Some(0));
+        p.remove(0);
+        assert!(p.is_empty());
+        assert_eq!(&format!("{:?}", p), "[]");
+        let mut p2: AssociativePositionalList<i8> = AssociativePositionalList::new();
+        for i in 0..5 {
+            p2.insert(0, i);
+        }
+        assert_eq!(&format!("{:?}", p2), "[4, 3, 2, 1, 0]");
+        assert_eq!(p2.find(&0), Some(4));
+        p2.remove(1);
+        assert_eq!(p2.find(&0), Some(3));
+        assert_eq!(&format!("{:?}", p2), "[4, 2, 1, 0]");
     }
-    assert_eq!(&format!("{:?}", p2), "[4, 3, 2, 1, 0]");
-    assert_eq!(p2.find(&0), Some(4));
-    p2.remove(1);
-    assert_eq!(p2.find(&0), Some(3));
-    assert_eq!(&format!("{:?}", p2), "[4, 2, 1, 0]");
 }
