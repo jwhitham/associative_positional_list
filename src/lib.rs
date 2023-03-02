@@ -315,10 +315,8 @@ where
     /// Note: If values have not always been unique within the list, then the `find` method's
     /// return is not defined.
     pub fn find(&self, value: &ValueType) -> Option<ExternalIndex> {
-        let pp: Option<&InternalIndex> = self.lookup.get(value);
+        let mut p: InternalIndex = *self.lookup.get(value)?;
 
-        pp?;
-        let mut p: InternalIndex = *pp.unwrap();
         if self.iget(p).value != *value {
             return None; // The value has changed, the rule about uniqueness wasn't followed
         }
