@@ -1,10 +1,12 @@
 ﻿// From AoC 2020 day 23
 // https://adventofcode.com/2020/day/23
-// 
+//
 // This is not the best solution for the puzzle which can also be solved with a linked
 // list: there is no need for the list index to be known at each iteration.
 //
 extern crate associative_positional_list;
+use std::fmt::Display;
+
 use associative_positional_list::AssociativePositionalList;
 
 type Cup = usize;
@@ -15,26 +17,26 @@ struct CrabGame {
 }
 
 impl CrabGame {
-    
     fn new(initial_state: &str, number_of_cups: usize) -> Self {
         let mut cg = Self {
             all_cups: AssociativePositionalList::new(),
-            number_of_cups: number_of_cups,
+            number_of_cups,
         };
 
         let bytes = Vec::from_iter(initial_state.bytes());
 
-        for i in 0 .. bytes.len() {
-            cg.all_cups.insert(i, (bytes.get(i).unwrap() - b'0') as usize);
+        for i in 0..bytes.len() {
+            cg.all_cups
+                .insert(i, (bytes.get(i).unwrap() - b'0') as usize);
         }
-        for i in bytes.len() + 1 .. number_of_cups + 1 {
+        for i in bytes.len() + 1..number_of_cups + 1 {
             cg.all_cups.insert(i, i);
         }
-        return cg;
+        cg
     }
 
-    fn play(self: &mut Self, number_of_rounds: usize) {
-        for _ in 0 .. number_of_rounds {
+    fn play(&mut self, number_of_rounds: usize) {
+        for _ in 0..number_of_rounds {
             let current_cup = *self.all_cups.get(0).unwrap();
 
             // remove cups 1, 2, 3
@@ -47,8 +49,11 @@ impl CrabGame {
 
             // determine destination
             let mut destination_cup = current_cup - 1;
-            while (destination_cup == cup1) || (destination_cup == cup2)
-                || (destination_cup == cup3) || (destination_cup == 0) {
+            while (destination_cup == cup1)
+                || (destination_cup == cup2)
+                || (destination_cup == cup3)
+                || (destination_cup == 0)
+            {
                 if destination_cup == 0 {
                     destination_cup = self.number_of_cups + 1;
                 }
@@ -68,41 +73,38 @@ impl CrabGame {
         }
     }
 
-    #[allow(dead_code)]
-    fn to_string(self: &Self) -> String {
-        let current_cup = self.all_cups.get(0).unwrap();
-        let mut output = String::new();
-        for i in 0 .. usize::min(self.number_of_cups, 10) {
-            let v = self.all_cups.get(i).unwrap();
-            if v == current_cup {
-                output.push_str(" (");
-                output.push_str(&v.to_string());
-                output.push_str(")");
-            } else {
-                output.push_str(" ");
-                output.push_str(&v.to_string());
-            }
-        }
-        return output;
-    }
-
-    fn part_1_result(self: &Self) -> String {
+    fn part_1_result(&self) -> String {
         let mut iter = self.all_cups.find(&1).unwrap();
         let mut output = String::new();
-        for _ in 0 .. usize::min(self.number_of_cups, 8) {
+        for _ in 0..usize::min(self.number_of_cups, 8) {
             iter = (iter + 1) % self.number_of_cups;
             output.push_str(&self.all_cups.get(iter).unwrap().to_string());
         }
-        return output;
+        output
     }
 
-    fn part_2_result(self: &Self) -> u64 {
+    fn part_2_result(&self) -> u64 {
         let mut iter = self.all_cups.find(&1).unwrap();
         iter = (iter + 1) % self.number_of_cups;
         let r1 = *self.all_cups.get(iter).unwrap() as u64;
         iter = (iter + 1) % self.number_of_cups;
         let r2 = *self.all_cups.get(iter).unwrap() as u64;
-        return r1 * r2;  // <-- that's numberwang
+        r1 * r2 // <-- that's numberwang
+    }
+}
+
+impl Display for CrabGame {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        let current_cup = self.all_cups.get(0).unwrap();
+        for i in 0..usize::min(self.number_of_cups, 10) {
+            let v = self.all_cups.get(i).unwrap();
+            if v == current_cup {
+                f.write_fmt(format_args!(" ({v})"))?;
+            } else {
+                f.write_fmt(format_args!(" {v}"))?;
+            }
+        }
+        Ok(())
     }
 }
 
