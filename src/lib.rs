@@ -150,13 +150,17 @@ where
         let mut it2 = other.iter();
         loop {
             match (it1.next(), it2.next()) {
-                (None, a) => {
-                    return a.is_none();
+                (None, None) => {
+                    return true; // reached the end
                 }
-                (Some(x), Some(y)) if x != y => {
-                    return false;
+                (Some(x), Some(y)) => {
+                    if x != y {
+                        return false; // found elements that don't match
+                    }
+                },
+                _ => {
+                    return false; // reached the end with one, but not the other
                 }
-                _ => {}
             }
         }
     }
@@ -362,7 +366,7 @@ where
         }
         Iter {
             parent: self,
-            stack,
+            stack: stack,
         }
     }
 
@@ -379,7 +383,7 @@ where
     fn new_node(&mut self, value: ValueType) -> InternalIndex {
         let n: AVLNode<ValueType> = AVLNode {
             child: [NO_INDEX, NO_INDEX],
-            value,
+            value: value,
             balance: 0,
             direction: 0,
             rank: 0,
@@ -702,6 +706,7 @@ where
                     p = self.iget(p).child[0];
                 }
                 Ordering::Equal => {
+                    // element found - stop
                     break;
                 }
                 Ordering::Greater => {

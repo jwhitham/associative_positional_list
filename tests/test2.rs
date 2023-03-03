@@ -20,7 +20,7 @@ impl CrabGame {
     fn new(initial_state: &str, number_of_cups: usize) -> Self {
         let mut cg = Self {
             all_cups: AssociativePositionalList::new(),
-            number_of_cups,
+            number_of_cups: number_of_cups,
         };
 
         let bytes = Vec::from_iter(initial_state.bytes());
