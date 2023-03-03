@@ -157,7 +157,7 @@ where
                     if x != y {
                         return false; // found elements that don't match
                     }
-                },
+                }
                 _ => {
                     return false; // reached the end with one, but not the other
                 }
