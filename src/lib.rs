@@ -1173,12 +1173,23 @@ mod test {
         for n in p.iter() {
             assert!(n == "Hello" || n == "World");
         }
+        let mut p1 = p.clone();
+        assert_eq!(p, p1);
         p.remove(0);
+        assert_ne!(p, p1);
         assert_eq!(p[0], "World");
         assert_eq!(p.find(&"Hello".to_string()), None);
         assert_eq!(p.find(&"World".to_string()), Some(0));
         p.remove(0);
         assert!(p.is_empty());
+        assert_eq!(p1[0], "Hello");
+        assert_eq!(p1[1], "World");
+        p1.remove(1);
+        assert_eq!(p1.len(), 1);
+        assert_eq!(p1[0], "Hello");
+        assert_eq!(p1.find(&"Hello".to_string()), Some(0));
+        p1.remove(0);
+        assert!(p1.is_empty());
         assert_eq!(&format!("{:?}", p), "[]");
         let mut p2: AssociativePositionalList<i8> = AssociativePositionalList::new();
         for i in 0..5 {
