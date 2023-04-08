@@ -106,7 +106,7 @@ const HEAD_INDEX: InternalIndex = 0;
 /// [Knuth's TAOCP]: https://en.wikipedia.org/wiki/The_Art_of_Computer_Programming
 ///
 
-#[derive(Default)]
+#[derive(Default, Clone)]
 pub struct AssociativePositionalList<ValueType>
 where
     ValueType: std::hash::Hash + Eq + Clone,
@@ -115,6 +115,7 @@ where
     data: Vec<AVLNode<ValueType>>,
 }
 
+#[derive(Clone)]
 struct AVLNode<ValueType> {
     child: [InternalIndex; 2],
     value: ValueType,
